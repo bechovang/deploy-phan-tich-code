@@ -14,6 +14,19 @@ from flask import Flask, render_template, request
 from markupsafe import Markup
 from dotenv import load_dotenv # Added for loading .env file
 
+# CÀI ĐẶT ENV
+
+# Xác định thư mục chứa main.py
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# Đường dẫn tuyệt đối tới file .env
+dotenv_path = os.path.join(BASE_DIR, '.env')
+# Nạp tất cả biến trong .env vào os.environ
+load_dotenv(dotenv_path)
+
+
+
+
+
 app = Flask(__name__)
 
 # Global variables
@@ -45,15 +58,7 @@ def validate_and_consume_key(key):
     save_keys(keys)
     return True, None
 
-# Lấy API key từ .env
-load_dotenv()
 
-api_key = os.getenv("GEMINI_API_KEY")
-if not api_key:
-    print("❌ Chưa thiết lập GEMINI_API_KEY trong .env")
-    sys.exit(1)
-
-genai.configure(api_key=api_key)
 
 
 # Cấu hình API key cho Gemini
@@ -61,9 +66,11 @@ def setup_gemini_api():
   load_dotenv()  # Load environment variables from .env file
   global model_name_global, gemini_model_global
   try:
-    api_key = "AIzaSyBYEKKI0v-5WvixUA4BY9EPLeOul92FYcQ"
-    
-    # Configure the Gemini API
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        print("❌ Chưa thiết lập GEMINI_API_KEY trong .env")
+        sys.exit(1)
+
     genai.configure(api_key=api_key)
     
     model_to_use = "gemini-1.5-pro-latest"  # or "gemini-pro" if you prefer
@@ -300,17 +307,22 @@ def analyze():
       # quay về index với thông báo lỗi
       return render_template('index.html', error_message=err)
 
+  # Tính số lượt đã dùng và còn lại
+  keys = load_keys()
+  used = keys.get(api_key, 0)
+  remaining = max(0, 10 - used)
+
   if not model_name_global:
-    return render_template('results.html', error_message="Lỗi: Gemini API chưa được cấu hình đúng.", text_to_html=text_to_html)
+    return render_template('results.html', error_message="Lỗi: Gemini API chưa được cấu hình đúng.", remaining=remaining, text_to_html=text_to_html)
 
   problem_description = request.form.get('problem_description', '')
   source_code = request.form.get('source_code', '')
   language = request.form.get('language', 'Python')
 
   if not problem_description.strip():
-    return render_template('results.html', error_message="Vui lòng nhập đề bài.", text_to_html=text_to_html)
+    return render_template('results.html', error_message="Vui lòng nhập đề bài.", remaining=remaining, text_to_html=text_to_html)
   if not source_code.strip():
-    return render_template('results.html', error_message="Vui lòng nhập mã nguồn.", text_to_html=text_to_html)
+    return render_template('results.html', error_message="Vui lòng nhập mã nguồn.", remaining=remaining, text_to_html=text_to_html)
 
   # Tạo prompt
   current_prompt = create_prompt(problem_description, source_code, language)
@@ -319,15 +331,15 @@ def analyze():
   result, error = analyze_code_with_gemini(model_name_global, current_prompt)
   
   if error:
-    return render_template('results.html', error_message=f"Lỗi phân tích: {error}", text_to_html=text_to_html)
+    return render_template('results.html', error_message=f"Lỗi phân tích: {error}", remaining=remaining, text_to_html=text_to_html)
   
   if result:
     # Prepare data for the template (example, you might need to adjust based on your actual result structure)
     # The 'text_to_html' function can be used in the template with Jinja2 filters if needed
     # or applied here before passing to the template.
-    return render_template('results.html', result=result, language=language, text_to_html=text_to_html)
+    return render_template('results.html', result=result, language=language, remaining=remaining, text_to_html=text_to_html)
   else:
-    return render_template('results.html', error_message="Không thể phân tích mã nguồn. Vui lòng thử lại.", text_to_html=text_to_html)
+    return render_template('results.html', error_message="Không thể phân tích mã nguồn. Vui lòng thử lại.", remaining=remaining, text_to_html=text_to_html)
 
 # Chạy ứng dụng Flask
 if __name__ == "__main__":

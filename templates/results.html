@@ -5,7 +5,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kết quả Phân tích</title>
-
+    {% if remaining is defined %}
+    <div class="alert alert-info mt-3">
+        🔑 Bạn còn <strong>{{ remaining }}</strong> lượt sử dụng cho API Key này.
+    </div>
+    {% endif %}
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Confetti library -->
