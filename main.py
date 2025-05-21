@@ -16,14 +16,11 @@ from dotenv import load_dotenv # Added for loading .env file
 
 # CÀI ĐẶT ENV
 
-# Xác định thư mục chứa main.py
+# CHỈ load .env khi file .env còn tồn tại (dành cho local dev)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-# Đường dẫn tuyệt đối tới file .env
 dotenv_path = os.path.join(BASE_DIR, '.env')
-# Nạp tất cả biến trong .env vào os.environ
-load_dotenv(dotenv_path)
-
-
+if os.path.exists(dotenv_path):
+    load_dotenv(dotenv_path)
 
 
 
