@@ -69,7 +69,7 @@ def setup_gemini_api():
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
         print("❌ Chưa thiết lập GEMINI_API_KEY trong .env")
-        sys.exit(1)
+        #sys.exit(1)
 
     genai.configure(api_key=api_key)
     
