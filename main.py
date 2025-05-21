@@ -338,6 +338,13 @@ def analyze():
   else:
     return render_template('results.html', error_message="Không thể phân tích mã nguồn. Vui lòng thử lại.", remaining=remaining, text_to_html=text_to_html)
 
+# Đảm bảo Gemini API được khởi tạo dù chạy qua Gunicorn
+if not setup_gemini_api():
+  # Nếu bạn muốn dừng việc deploy hẳn, uncomment:
+  # raise RuntimeError("✖️ Gemini API chưa cấu hình được. Kiểm tra biến GEMINI_API_KEY.")
+  print("❌ Lỗi khởi tạo Gemini API; xem log để biết chi tiết.")
+
+
 # Chạy ứng dụng Flask
 if __name__ == "__main__":
   if setup_gemini_api():  # Setup API key and model when app starts
