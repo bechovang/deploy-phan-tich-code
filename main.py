@@ -70,7 +70,7 @@ def setup_gemini_api():
 
     genai.configure(api_key=api_key)
     
-    model_to_use = "gemini-1.5-pro-latest"  # or "gemini-pro" if you prefer
+    model_to_use = "gemini-1.5-flash-latest"  # or "gemini-pro" if you prefer
     
     # Test the connection by initializing a model
     try:
@@ -102,53 +102,64 @@ def setup_gemini_api():
 # Cải thiện create_prompt cho phần mô phỏng thực thi rõ ràng hơn
 def create_prompt(problem_description, source_code, language):
   prompt = f"""
-  Bạn là một trợ lý lập trình thông minh chuyên phân tích và debug mã nguồn {language}.
+  Bạn là một trợ lý lập trình thông minh chuyên phân tích và debug mã nguồn {language}, với kinh nghiệm đặc biệt trong việc giải quyết các thuật toán và tối ưu hóa code. Nhiệm vụ của bạn là giúp phân tích, tìm lỗi và đề xuất cải tiến cho đoạn code sau:
   
   # Đề bài:
   {problem_description}
   
-  # Mã nguồn {language} (DO NGƯỜỜI DÙNG CUNG CẤP):
+  # Mã nguồn {language} (DO NGƯỜI DÙNG CUNG CẤP):
   ```{language}
   {source_code}
   ```
   
-  Hãy thực hiện các nhiệm vụ sau ĐỐI VỚI MÃ NGUỒN GỐC DO NGƯỜI DÙNG CUNG CẤP:
+  Phân tích toàn diện theo các bước sau ĐỐI VỚI MÃ NGUỒN GỐC DO NGƯỜI DÙNG CUNG CẤP:
   
-  ## 1. Phân tích mã nguồn
-  - Phân tích cú pháp và ngữ nghĩa của mã nguồn {language} gốc.
-  - Xác định xem mã nguồn gốc có thỏa mãn yêu cầu của đề bài không.
-  - Tìm và liệt kê tất cả các lỗi trong mã nguồn gốc: lỗi cú pháp, lỗi logic, lỗi thời gian chạy tiềm ẩn.
+  ## 1. Phân tích mã nguồn (Bao quát)
+  - Tóm tắt ngắn gọn chức năng hiện tại của mã nguồn và cách tiếp cận của nó
+  - Đánh giá mức độ đáp ứng yêu cầu đề bài (đầy đủ, một phần, hoặc không đáp ứng)
+  - Phân loại và liệt kê các lỗi theo ba nhóm:
+    * Lỗi cú pháp: Những lỗi ngăn code biên dịch/chạy
+    * Lỗi logic: Những lỗi làm code hoạt động không chính xác
+    * Lỗi tiềm ẩn: Các vấn đề có thể phát sinh trong một số trường hợp đặc biệt
+  - Nêu mức độ nghiêm trọng của từng lỗi (nghiêm trọng, trung bình, nhẹ)
   
-  ## 2. Gợi ý sửa lỗi (Dành cho mã nguồn gốc)
-  - Giải thích chi tiết từng lỗi đã tìm thấy trong mã nguồn gốc (nguyên nhân, dòng code có lỗi).
-  - Đề xuất cách sửa lỗi cụ thể cho mã nguồn gốc.
-  - Cung cấp đoạn mã đã sửa (nếu cần thiết, dựa trên mã nguồn gốc và các lỗi đã tìm thấy).
+  ## 2. Phân tích độ phức tạp và hiệu suất
+  - Xác định độ phức tạp thời gian của thuật toán (Big O) và tác động đến hiệu suất
+  - Phân tích cách sử dụng bộ nhớ và các cơ hội tối ưu hóa
+  - Đánh giá khả năng mở rộng với các tập dữ liệu lớn hoặc nhiều trường hợp đặc biệt
   
-  ## 3. Mô phỏng thực thi từng bước (Sử dụng MÃ NGUỒN GỐC của người dùng)
-  Nhiệm vụ của bạn là tìm hoặc tạo ra các trường hợp kiểm thử (test cases) cho MÃ NGUỒN GỐC được cung cấp và mô phỏng chúng.
+  ## 3. Gợi ý sửa lỗi chi tiết
+  - Phân tích chi tiết từng lỗi, bao gồm cả vị trí chính xác trong code và nguyên nhân cốt lõi
+  - Đề xuất cách sửa cụ thể cho từng lỗi với giải thích về cách tiếp cận đã chọn
+  - Nêu rõ mức độ ưu tiên cho từng sửa đổi (cần thiết hay tùy chọn)
+  - Cung cấp các đoạn mã đã sửa cho mỗi vấn đề, KHÔNG TRẢ TOÀN BỘ MÃ NGUỒN đã sửa trừ khi cần thiết
   
-  - **Trường hợp tìm lỗi (Error Case Simulation):**
-    + Cố gắng tìm hoặc tạo một ví dụ đầu vào (test case) cụ thể mà sẽ khiến MÃ NGUỒN GỐC gây ra lỗi (logic, runtime) hoặc cho kết quả sai dựa trên phân tích ở Mục 1.
-    + Nếu bạn xác định được một test case gây lỗi:
-      - Mô phỏng thực thi chi tiết MÃ NGUỒN GỐC từng bước với test case gây lỗi này.
-      - Chỉ rõ giá trị đầu vào đang sử dụng.
-      - Hiển thị từng dòng code gốc đang thực thi.
-      - Hiển thị giá trị của các biến quan trọng sau mỗi bước.
-      - Đánh dấu **CHÍNH XÁC** bước nào trong MÃ NGUỒN GỐC gây ra lỗi/kết quả sai.
-      - Giải thích tại sao bước đó gây ra lỗi/kết quả sai.
-    + Nếu bạn KHÔNG THỂ tìm thấy hoặc tạo ra một test case gây lỗi cho MÃ NGUỒN GỐC (ví dụ: mã nguồn gốc có vẻ đúng về mặt logic với các lỗi không thể hiện qua đầu vào đơn giản), hãy ghi rõ trong phần `input` của `error_case` là "Không tìm thấy trường hợp lỗi rõ ràng cho mã nguồn gốc." và có thể bỏ qua các bước mô phỏng chi tiết cho `error_case` hoặc cung cấp một mô phỏng rất ngắn gọn với một đầu vào thông thường nếu muốn.
-  
-  - **Trường hợp chạy đúng (Happy Path Simulation):**
-    + Tìm hoặc tạo một ví dụ đầu vào (test case) khác mà MÃ NGUỒN GỐC sẽ hoạt động đúng và cho ra kết quả như mong đợi (happy path).
-    + Nếu bạn xác định được một test case chạy đúng:
-      - Mô phỏng thực thi chi tiết MÃ NGUỒN GỐC từng bước với test case này.
-      - Chỉ rõ giá trị đầu vào đang sử dụng.
-      - Hiển thị từng dòng code gốc đang thực thi.
-      - Hiển thị giá trị của các biến quan trọng sau mỗi bước.
-    + Nếu vì lý do nào đó không thể xác định một test case chạy đúng rõ ràng cho MÃ NGUỒN GỐC, hãy ghi rõ trong phần `input` của `happy_path_case` là "Không tìm thấy trường hợp chạy đúng rõ ràng cho mã nguồn gốc." và có thể bỏ qua các bước mô phỏng chi tiết.
+  ## 4. Mô phỏng thực thi từng bước (Sử dụng MÃ NGUỒN GỐC của người dùng)
+  ### Trường hợp phát hiện lỗi:
+  - Tạo một trường hợp kiểm thử cụ thể (test case) sẽ làm lộ ra lỗi trong mã nguồn gốc
+  - Mô phỏng chi tiết quá trình thực thi trên test case đó với:
+    * Chỉ rõ giá trị đầu vào
+    * Trạng thái các biến quan trọng thay đổi sau mỗi bước
+    * Xác định chính xác dòng code gây ra lỗi và giải thích tại sao
+  - Nếu không tìm thấy trường hợp lỗi rõ ràng, ghi rõ và cung cấp mô phỏng ngắn gọn
 
-  ## 4. Đánh giá tổng quát (Về mã nguồn gốc)
-  - Tóm tắt về mã nguồn gốc, hiệu suất của nó, và đề xuất cải thiện chung (nếu có).
+  ### Trường hợp thực thi thành công:
+  - Tạo một trường hợp kiểm thử cho mã nguồn gốc hoạt động đúng
+  - Mô phỏng chi tiết quá trình thực thi trên test case đó với:
+    * Chỉ rõ giá trị đầu vào
+    * Trạng thái các biến quan trọng thay đổi sau mỗi bước
+    * Giải thích tại sao kết quả thu được là chính xác
+  
+  ## 5. Đề xuất cải tiến nâng cao
+  - Đề xuất các cải tiến tổng thể về thiết kế, cấu trúc và hiệu suất
+  - Chỉ ra các kỹ thuật hoặc cấu trúc dữ liệu thay thế có thể cải thiện hiệu suất
+  - Đề xuất cách tiếp cận khác (nếu có) có thể giải quyết vấn đề tốt hơn
+  - Cung cấp đoạn mã minh họa ngắn gọn cho các đề xuất quan trọng nhất
+  
+  ## 6. Đánh giá tổng quát và hướng dẫn học tập
+  - Đánh giá tổng thể về mã nguồn, bao gồm điểm mạnh và điểm yếu
+  - Đề xuất các khái niệm, kỹ thuật hoặc thực hành tốt nhất mà người dùng nên tìm hiểu thêm
+  - Gợi ý các tài nguyên học tập phù hợp với trình độ được suy ra từ mã nguồn
   
   **HƯỚNG DẪN TRẢ LỜI - CỰC KỲ QUAN TRỌNG:**
   
@@ -157,68 +168,114 @@ def create_prompt(problem_description, source_code, language):
   
   **Yêu cầu chi tiết cho cấu trúc và nội dung JSON:**
   - Tất cả các giá trị chuỗi (string) trong JSON PHẢI được bao quanh bởi dấu ngoặc kép (`"`).
-  - MỌI ký tự đặc biệt bên trong giá trị chuỗi PHẢI được escape đúng cách. Ví dụ:
-    - Dấu ngoặc kép (`"`) trong chuỗi phải là `\\\"`.
-    - Dấu gạch chéo ngược (`\\\\`) trong chuỗi phải là `\\\\\\\\`.
-    - Ký tự xuống dòng mới phải là `\\\\n`.
-    - Ký tự tab phải là `\\\\t`.
-  - Các trường chứa mã nguồn (ví dụ: `fixed_code`, `code_line`) phải là một chuỗi JSON hợp lệ. KHÔNG sử dụng dấu backtick (`) để bao quanh giá trị của các trường này; thay vào đó, hãy đảm bảo mã nguồn là một phần của một chuỗi JSON được escape đúng cách.
+  - Các ký tự đặc biệt trong chuỗi PHẢI được escape đúng cách (dấu ngoặc kép `"` thành `\\\"`, dấu gạch chéo ngược `\\` thành `\\\\`, xuống dòng thành `\\n`, tab thành `\\t`)
+  - Các trường chứa mã nguồn phải là chuỗi JSON được escape đúng cách, KHÔNG sử dụng backtick (`) để bao quanh giá trị
   
-  **Cấu trúc JSON bắt buộc (lưu ý tên trường `happy_path_case`):**
+  **Cấu trúc JSON bắt buộc:**
   ```json
-  {{
-    "analysis": {{  // Phân tích dựa trên mã nguồn gốc
-      "syntax_errors": ["Danh sách các lỗi cú pháp..."],
-      "logical_errors": ["Danh sách các lỗi logic..."],
-      "runtime_errors": ["Danh sách các lỗi thời gian chạy tiềm ẩn..."],
-      "meets_requirements": true/false
-    }},
-    "suggestions": [
-      {{
-        "line": số_dòng, 
-        "error": "Mô tả lỗi chi tiết...",
-        "fix": "Đề xuất sửa lỗi chi tiết...",
-        "fixed_code": "Chỉ cung cấp CÁC DÒNG MÃ CẦN THAY ĐỔI hoặc một đoạn mã MINH HỌA NGẮN GỌN cho việc sửa lỗi. KHÔNG trả về toàn bộ mã nguồn đã sửa nếu không thực sự cần thiết. (Chuỗi JSON được escape đúng cách)."
-      }}
+  {
+    "overview": {
+      "summary": "Tóm tắt chức năng của mã nguồn...",
+      "meets_requirements": true/false/partial,
+      "explanation": "Giải thích mức độ đáp ứng yêu cầu đề bài..."
+    },
+    "complexity_analysis": {
+      "time_complexity": "O(n), O(n²), O(log n), etc.",
+      "space_complexity": "O(n), O(1), etc.",
+      "explanation": "Giải thích chi tiết về độ phức tạp và hiệu suất..."
+    },
+    "errors": {
+      "syntax_errors": [
+        {
+          "line": số_dòng,
+          "severity": "high/medium/low",
+          "description": "Mô tả lỗi cú pháp...",
+          "impact": "Tác động của lỗi đến chương trình..."
+        }
+      ],
+      "logical_errors": [
+        {
+          "line": số_dòng,
+          "severity": "high/medium/low",
+          "description": "Mô tả lỗi logic...",
+          "impact": "Tác động của lỗi đến chương trình..."
+        }
+      ],
+      "potential_issues": [
+        {
+          "line": số_dòng,
+          "severity": "high/medium/low",
+          "description": "Mô tả vấn đề tiềm ẩn...",
+          "scenario": "Kịch bản khi vấn đề có thể xảy ra..."
+        }
+      ]
+    },
+    "fix_suggestions": [
+      {
+        "line": số_dòng,
+        "error_type": "syntax/logical/potential",
+        "priority": "required/optional",
+        "original_code": "Đoạn mã gốc có lỗi...",
+        "fixed_code": "Đoạn mã đã sửa...",
+        "explanation": "Giải thích chi tiết cách sửa và lý do..."
+      }
     ],
-    "simulation": {{ // Mô phỏng dựa trên mã nguồn gốc
-      "error_case": {{
-        "input": "Giá trị đầu vào gây lỗi cho mã gốc HOẶC 'Không tìm thấy trường hợp lỗi rõ ràng cho mã nguồn gốc.'",
+    "simulation": {
+      "error_case": {
+        "input": "Giá trị đầu vào gây lỗi hoặc 'Không tìm thấy trường hợp lỗi rõ ràng'",
         "steps": [
-          {{
-            "step": 1, 
+          {
+            "step": 1,
+            "line": số_dòng,
             "code_line": "Dòng code GỐC đang thực thi...",
             "explanation": "Giải thích bước...",
-            "variables": {{ 
+            "variables": {
               "tên_biến_1": "giá_trị_1",
               "tên_biến_2": "giá_trị_2"
-            }},
-            "is_error_step": false, 
-            "error_explanation": null // Hoặc mô tả lỗi nếu bước này là bước lỗi
-          }}
-          // ... thêm các bước nếu có test case lỗi
+            },
+            "is_error_step": false,
+            "error_explanation": null
+          }
         ],
-        "result": "Kết quả sai/lỗi thu được từ mã gốc (nếu có test case lỗi)"
-      }},
-      "happy_path_case": {{ // Thay vì corrected_case
-        "input": "Giá trị đầu vào chạy đúng cho mã gốc HOẶC 'Không tìm thấy trường hợp chạy đúng rõ ràng cho mã nguồn gốc.'",
+        "result": "Kết quả sai/lỗi thu được từ mã gốc (nếu có)"
+      },
+      "success_case": {
+        "input": "Giá trị đầu vào chạy đúng hoặc 'Không tìm thấy trường hợp chạy thành công'",
         "steps": [
-          {{
-            "step": 1, 
+          {
+            "step": 1,
+            "line": số_dòng,
             "code_line": "Dòng code GỐC đang thực thi...",
             "explanation": "Giải thích bước...",
-            "variables": {{ 
+            "variables": {
               "tên_biến_1": "giá_trị_1",
               "tên_biến_2": "giá_trị_2"
-            }}
-          }}
-          // ... thêm các bước nếu có test case chạy đúng
+            }
+          }
         ],
-        "result": "Kết quả đúng thu được từ mã gốc (nếu có test case chạy đúng)"
-      }}
-    }},
-    "evaluation": "Nhận xét tổng thể về mã nguồn gốc..."
-  }}
+        "result": "Kết quả đúng thu được từ mã gốc (nếu có)"
+      }
+    },
+    "advanced_improvements": [
+      {
+        "type": "optimization/design/algorithm/data_structure",
+        "description": "Mô tả cải tiến nâng cao...",
+        "benefit": "Lợi ích của cải tiến này...",
+        "code_example": "Ví dụ minh họa ngắn gọn cho cải tiến (nếu có)..."
+      }
+    ],
+    "learning_guidance": {
+      "evaluation": "Đánh giá tổng quát về mã nguồn, điểm mạnh và điểm yếu...",
+      "concepts_to_learn": ["Khái niệm 1", "Khái niệm 2", "..."],
+      "resources": [
+        {
+          "topic": "Chủ đề học tập liên quan...",
+          "why_relevant": "Lý do tại sao chủ đề này quan trọng với người dùng...",
+          "difficulty": "beginner/intermediate/advanced"
+        }
+      ]
+    }
+  }
   ```
   """
   return prompt
@@ -233,7 +290,7 @@ def analyze_code_with_gemini(model_name, prompt_text):
       "temperature": 0.2,
       "top_p": 0.95,
       "top_k": 40,
-      "max_output_tokens": 20480, 
+      "max_output_tokens": 8192, 
     }
     
     response = gemini_model_global.generate_content(
@@ -242,7 +299,17 @@ def analyze_code_with_gemini(model_name, prompt_text):
     )
     
     response_content = response.text.strip()
-    # print(f"---- RAW RESPONSE ----\\n{response_content}\\n---------------------") # For debugging
+
+    # Logging token usage
+    if response.usage_metadata:
+        print(f"--- Token Usage for this request ---")
+        print(f"Prompt Tokens: {response.usage_metadata.prompt_token_count}")
+        print(f"Completion Tokens: {response.usage_metadata.candidates_token_count}")
+        print(f"Total Tokens: {response.usage_metadata.total_token_count}")
+        print(f"------------------------------------")
+    else:
+        print("Không có dữ liệu token usage.")
+
 
     # 1. Extract JSON string from potential markdown block if present
     #    Or, if the model *only* returns JSON, this step might be bypassed.
