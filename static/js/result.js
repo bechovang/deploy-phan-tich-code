@@ -25,19 +25,19 @@ document.addEventListener('DOMContentLoaded', () => {
   const meets = JSON.parse(container.dataset.meetsRequirements || 'false');
   const seCnt = +(container.dataset.syntaxErrorsCount || 0);
   const leCnt = +(container.dataset.logicalErrorsCount || 0);
-  const reCnt = +(container.dataset.runtimeErrorsCount || 0);
+  const piCnt = +(container.dataset.potentialIssuesCount || 0);
   
   console.log("Conditions for confetti:", {
     meets: meets,
     syntaxErrors: seCnt,
     logicalErrors: leCnt,
-    runtimeErrors: reCnt,
+    potentialIssues: piCnt,
     confettiExists: typeof confetti === 'function'
   });
 
   // Chỉ bắn confetti khi code hoàn toàn đúng
-  if (!(meets && seCnt === 0 && leCnt === 0 && reCnt === 0)) {
-    console.log("Code has errors, not showing confetti");
+  if (!(meets && seCnt === 0 && leCnt === 0 && piCnt === 0)) {
+    console.log("Code has errors or potential issues, not showing confetti");
     return;
   }
   

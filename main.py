@@ -30,34 +30,6 @@ app = Flask(__name__)
 model_name_global = None
 gemini_model_global = None  # Global Gemini model
 
-# Key 10 lần dùng
-KEY_FILE = 'key.json'
-
-def load_keys():
-    if not os.path.exists(KEY_FILE):
-        with open(KEY_FILE, 'w') as f:
-            json.dump({}, f)
-    with open(KEY_FILE) as f:
-        return json.load(f)
-
-def save_keys(keys):
-    with open(KEY_FILE, 'w') as f:
-        json.dump(keys, f, indent=2)
-
-def validate_and_consume_key(key):
-    keys = load_keys()
-    if key not in keys:
-        return False, "API Key không hợp lệ."
-    if keys[key] >= 10:
-        return False, "API Key đã hết hạn dùng (10 lần)."
-    # tăng bộ đếm
-    keys[key] += 1
-    save_keys(keys)
-    return True, None
-
-
-
-
 # Cấu hình API key cho Gemini
 def setup_gemini_api():
   load_dotenv()  # Load environment variables from .env file
@@ -70,7 +42,7 @@ def setup_gemini_api():
 
     genai.configure(api_key=api_key)
     
-    model_to_use = "gemini-1.5-flash-latest"  # or "gemini-pro" if you prefer
+    model_to_use = "gemini-2.5-flash-preview-05-20"  # or "gemini-pro" if you prefer
     
     # Test the connection by initializing a model
     try:
@@ -101,6 +73,112 @@ def setup_gemini_api():
 
 # Cải thiện create_prompt cho phần mô phỏng thực thi rõ ràng hơn
 def create_prompt(problem_description, source_code, language):
+  # Define the JSON example structure as a separate string
+  json_example_structure = """\
+{
+    "overview": {
+      "summary": "Tóm tắt chức năng của mã nguồn...",
+      "meets_requirements": true/false/partial,
+      "explanation": "Giải thích mức độ đáp ứng yêu cầu đề bài..."
+    },
+    "complexity_analysis": {
+      "time_complexity": "O(n), O(n²), O(log n), etc.",
+      "space_complexity": "O(n), O(1), etc.",
+      "explanation": "Giải thích chi tiết về độ phức tạp và hiệu suất..."
+    },
+    "errors": {
+      "syntax_errors": [
+        {
+          "line": "số_dòng",
+          "severity": "high/medium/low",
+          "description": "Mô tả lỗi cú pháp...",
+          "impact": "Tác động của lỗi đến chương trình..."
+        }
+      ],
+      "logical_errors": [
+        {
+          "line": "số_dòng",
+          "severity": "high/medium/low",
+          "description": "Mô tả lỗi logic...",
+          "impact": "Tác động của lỗi đến chương trình..."
+        }
+      ],
+      "potential_issues": [
+        {
+          "line": "số_dòng",
+          "severity": "high/medium/low",
+          "description": "Mô tả vấn đề tiềm ẩn...",
+          "scenario": "Kịch bản khi vấn đề có thể xảy ra..."
+        }
+      ]
+    },
+    "fix_suggestions": [
+      {
+        "line": "số_dòng",
+        "error_type": "syntax/logical/potential",
+        "priority": "required/optional",
+        "original_code": "Đoạn mã gốc có lỗi...",
+        "fixed_code": "Đoạn mã đã sửa...",
+        "explanation": "Giải thích chi tiết cách sửa và lý do..."
+      }
+    ],
+    "simulation": {
+      "error_case": {
+        "input": "Giá trị đầu vào gây lỗi hoặc 'Không tìm thấy trường hợp lỗi rõ ràng'",
+        "steps": [
+          {
+            "step": 1,
+            "line": "số_dòng",
+            "code_line": "Dòng code GỐC đang thực thi...",
+            "explanation": "Giải thích bước...",
+            "variables": {
+              "tên_biến_1": "giá_trị_1",
+              "tên_biến_2": "giá_trị_2"
+            },
+            "is_error_step": false,
+            "error_explanation": null
+          }
+        ],
+        "result": "Kết quả sai/lỗi thu được từ mã gốc (nếu có)"
+      },
+      "success_case": {
+        "input": "Giá trị đầu vào chạy đúng hoặc 'Không tìm thấy trường hợp chạy thành công'",
+        "steps": [
+          {
+            "step": 1,
+            "line": "số_dòng",
+            "code_line": "Dòng code GỐC đang thực thi...",
+            "explanation": "Giải thích bước...",
+            "variables": {
+              "tên_biến_1": "giá_trị_1",
+              "tên_biến_2": "giá_trị_2"
+            }
+          }
+        ],
+        "result": "Kết quả đúng thu được từ mã gốc (nếu có)"
+      }
+    },
+    "advanced_improvements": [
+      {
+        "type": "optimization/design/algorithm/data_structure",
+        "description": "Mô tả cải tiến nâng cao...",
+        "benefit": "Lợi ích của cải tiến này...",
+        "code_example": "Ví dụ minh họa ngắn gọn cho cải tiến (nếu có)..."
+      }
+    ],
+    "learning_guidance": {
+      "evaluation": "Đánh giá tổng quát về mã nguồn, điểm mạnh và điểm yếu...",
+      "concepts_to_learn": ["Khái niệm 1", "Khái niệm 2", "..."],
+      "resources": [
+        {
+          "topic": "Chủ đề học tập liên quan...",
+          "why_relevant": "Lý do tại sao chủ đề này quan trọng với người dùng...",
+          "difficulty": "beginner/intermediate/advanced"
+        }
+      ]
+    }
+  }"""
+
   prompt = f"""
   Bạn là một trợ lý lập trình thông minh chuyên phân tích và debug mã nguồn {language}, với kinh nghiệm đặc biệt trong việc giải quyết các thuật toán và tối ưu hóa code. Nhiệm vụ của bạn là giúp phân tích, tìm lỗi và đề xuất cải tiến cho đoạn code sau:
   
@@ -168,114 +246,12 @@ def create_prompt(problem_description, source_code, language):
   
   **Yêu cầu chi tiết cho cấu trúc và nội dung JSON:**
   - Tất cả các giá trị chuỗi (string) trong JSON PHẢI được bao quanh bởi dấu ngoặc kép (`"`).
-  - Các ký tự đặc biệt trong chuỗi PHẢI được escape đúng cách (dấu ngoặc kép `"` thành `\\\"`, dấu gạch chéo ngược `\\` thành `\\\\`, xuống dòng thành `\\n`, tab thành `\\t`)
+  - Các ký tự đặc biệt trong chuỗi PHẢI được escape đúng cách (dấu ngoặc kép `\"` thành `\\\\\"`, dấu gạch chéo ngược `\\\\` thành `\\\\\\\\`, xuống dòng thành `\\\\n`, tab thành `\\\\t`)
   - Các trường chứa mã nguồn phải là chuỗi JSON được escape đúng cách, KHÔNG sử dụng backtick (`) để bao quanh giá trị
   
   **Cấu trúc JSON bắt buộc:**
   ```json
-  {
-    "overview": {
-      "summary": "Tóm tắt chức năng của mã nguồn...",
-      "meets_requirements": true/false/partial,
-      "explanation": "Giải thích mức độ đáp ứng yêu cầu đề bài..."
-    },
-    "complexity_analysis": {
-      "time_complexity": "O(n), O(n²), O(log n), etc.",
-      "space_complexity": "O(n), O(1), etc.",
-      "explanation": "Giải thích chi tiết về độ phức tạp và hiệu suất..."
-    },
-    "errors": {
-      "syntax_errors": [
-        {
-          "line": số_dòng,
-          "severity": "high/medium/low",
-          "description": "Mô tả lỗi cú pháp...",
-          "impact": "Tác động của lỗi đến chương trình..."
-        }
-      ],
-      "logical_errors": [
-        {
-          "line": số_dòng,
-          "severity": "high/medium/low",
-          "description": "Mô tả lỗi logic...",
-          "impact": "Tác động của lỗi đến chương trình..."
-        }
-      ],
-      "potential_issues": [
-        {
-          "line": số_dòng,
-          "severity": "high/medium/low",
-          "description": "Mô tả vấn đề tiềm ẩn...",
-          "scenario": "Kịch bản khi vấn đề có thể xảy ra..."
-        }
-      ]
-    },
-    "fix_suggestions": [
-      {
-        "line": số_dòng,
-        "error_type": "syntax/logical/potential",
-        "priority": "required/optional",
-        "original_code": "Đoạn mã gốc có lỗi...",
-        "fixed_code": "Đoạn mã đã sửa...",
-        "explanation": "Giải thích chi tiết cách sửa và lý do..."
-      }
-    ],
-    "simulation": {
-      "error_case": {
-        "input": "Giá trị đầu vào gây lỗi hoặc 'Không tìm thấy trường hợp lỗi rõ ràng'",
-        "steps": [
-          {
-            "step": 1,
-            "line": số_dòng,
-            "code_line": "Dòng code GỐC đang thực thi...",
-            "explanation": "Giải thích bước...",
-            "variables": {
-              "tên_biến_1": "giá_trị_1",
-              "tên_biến_2": "giá_trị_2"
-            },
-            "is_error_step": false,
-            "error_explanation": null
-          }
-        ],
-        "result": "Kết quả sai/lỗi thu được từ mã gốc (nếu có)"
-      },
-      "success_case": {
-        "input": "Giá trị đầu vào chạy đúng hoặc 'Không tìm thấy trường hợp chạy thành công'",
-        "steps": [
-          {
-            "step": 1,
-            "line": số_dòng,
-            "code_line": "Dòng code GỐC đang thực thi...",
-            "explanation": "Giải thích bước...",
-            "variables": {
-              "tên_biến_1": "giá_trị_1",
-              "tên_biến_2": "giá_trị_2"
-            }
-          }
-        ],
-        "result": "Kết quả đúng thu được từ mã gốc (nếu có)"
-      }
-    },
-    "advanced_improvements": [
-      {
-        "type": "optimization/design/algorithm/data_structure",
-        "description": "Mô tả cải tiến nâng cao...",
-        "benefit": "Lợi ích của cải tiến này...",
-        "code_example": "Ví dụ minh họa ngắn gọn cho cải tiến (nếu có)..."
-      }
-    ],
-    "learning_guidance": {
-      "evaluation": "Đánh giá tổng quát về mã nguồn, điểm mạnh và điểm yếu...",
-      "concepts_to_learn": ["Khái niệm 1", "Khái niệm 2", "..."],
-      "resources": [
-        {
-          "topic": "Chủ đề học tập liên quan...",
-          "why_relevant": "Lý do tại sao chủ đề này quan trọng với người dùng...",
-          "difficulty": "beginner/intermediate/advanced"
-        }
-      ]
-    }
-  }
+{json_example_structure}
   ```
   """
   return prompt
@@ -366,27 +342,25 @@ def index():
 @app.route('/analyze', methods=['POST'])
 def analyze():
   api_key = request.form.get('api_key', '').strip()
-  ok, err = validate_and_consume_key(api_key)
-  if not ok:
-      # quay về index với thông báo lỗi
-      return render_template('index.html', error_message=err)
-
-  # Tính số lượt đã dùng và còn lại
-  keys = load_keys()
-  used = keys.get(api_key, 0)
-  remaining = max(0, 10 - used)
+  # The following lines related to key validation and consumption have been removed:
+  # ok, err = validate_and_consume_key(api_key)
+  # if not ok:
+  #     return render_template('index.html', error_message=err)
+  # keys = load_keys()
+  # used = keys.get(api_key, 0)
+  # remaining = max(0, 10 - used)
 
   if not model_name_global:
-    return render_template('results.html', error_message="Lỗi: Gemini API chưa được cấu hình đúng.", remaining=remaining, text_to_html=text_to_html)
+    return render_template('results.html', error_message="Lỗi: Gemini API chưa được cấu hình đúng.", text_to_html=text_to_html)
 
   problem_description = request.form.get('problem_description', '')
   source_code = request.form.get('source_code', '')
   language = request.form.get('language', 'Python')
 
   if not problem_description.strip():
-    return render_template('results.html', error_message="Vui lòng nhập đề bài.", remaining=remaining, text_to_html=text_to_html)
+    return render_template('results.html', error_message="Vui lòng nhập đề bài.", text_to_html=text_to_html)
   if not source_code.strip():
-    return render_template('results.html', error_message="Vui lòng nhập mã nguồn.", remaining=remaining, text_to_html=text_to_html)
+    return render_template('results.html', error_message="Vui lòng nhập mã nguồn.", text_to_html=text_to_html)
 
   # Tạo prompt
   current_prompt = create_prompt(problem_description, source_code, language)
@@ -395,15 +369,12 @@ def analyze():
   result, error = analyze_code_with_gemini(model_name_global, current_prompt)
   
   if error:
-    return render_template('results.html', error_message=f"Lỗi phân tích: {error}", remaining=remaining, text_to_html=text_to_html)
+    return render_template('results.html', error_message=f"Lỗi phân tích: {error}", text_to_html=text_to_html)
   
   if result:
-    # Prepare data for the template (example, you might need to adjust based on your actual result structure)
-    # The 'text_to_html' function can be used in the template with Jinja2 filters if needed
-    # or applied here before passing to the template.
-    return render_template('results.html', result=result, language=language, remaining=remaining, text_to_html=text_to_html)
+    return render_template('results.html', result=result, language=language, text_to_html=text_to_html)
   else:
-    return render_template('results.html', error_message="Không thể phân tích mã nguồn. Vui lòng thử lại.", remaining=remaining, text_to_html=text_to_html)
+    return render_template('results.html', error_message="Không thể phân tích mã nguồn. Vui lòng thử lại.", text_to_html=text_to_html)
 
 # Đảm bảo Gemini API được khởi tạo dù chạy qua Gunicorn
 if not setup_gemini_api():

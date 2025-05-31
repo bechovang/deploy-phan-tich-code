@@ -5,11 +5,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kết quả Phân tích</title>
-    {% if remaining is defined %}
-    <div class="alert alert-info mt-3">
-        🔑 Bạn còn <strong>{{ remaining }}</strong> lượt sử dụng cho API Key này.
-    </div>
-    {% endif %}
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Confetti library -->
@@ -21,12 +16,12 @@
 </head>
 <body>
     <div class="container"
-        {% if result and result.analysis %}
+        {% if result %}
             data-analysis-present="true"
-            data-meets-requirements="{{ result.analysis.meets_requirements|default(false)|tojson }}"
-            data-syntax-errors-count="{{ (result.analysis.syntax_errors|default([])|length)|tojson }}"
-            data-logical-errors-count="{{ (result.analysis.logical_errors|default([])|length)|tojson }}"
-            data-runtime-errors-count="{{ (result.analysis.runtime_errors|default([])|length)|tojson }}"
+            data-meets-requirements="{{ result.overview.meets_requirements|default(false)|tojson }}"
+            data-syntax-errors-count="{{ (result.errors.syntax_errors|default([])|length)|tojson }}"
+            data-logical-errors-count="{{ (result.errors.logical_errors|default([])|length)|tojson }}"
+            data-potential-issues-count="{{ (result.errors.potential_issues|default([])|length)|tojson }}"
         {% else %}
             data-analysis-present="false"
         {% endif %}
@@ -43,50 +38,93 @@
         {% if error_message %}
             <div class="alert alert-danger">{{ text_to_html(error_message) }}</div>
         {% elif result %}
-            <!-- 1. Phân tích mã nguồn -->
-            <h2 class="section-title">1. Phân tích mã nguồn</h2>
-            <p><strong>Đánh giá đề bài:</strong>
-                {% if result.analysis.meets_requirements %}✅ Đạt yêu cầu{% else %}❌ Chưa đạt yêu cầu{% endif %}
-            </p>
-            <p><strong>Các lỗi phát hiện được:</strong></p>
-            {% if result.analysis.syntax_errors %}
-                <p><strong>Lỗi cú pháp:</strong></p>
-                <ul>{% for e in result.analysis.syntax_errors %}<li>{{ text_to_html(e) }}</li>{% endfor %}</ul>
-            {% endif %}
-            {% if result.analysis.logical_errors %}
-                <p><strong>Lỗi logic:</strong></p>
-                <ul>{% for e in result.analysis.logical_errors %}<li>{{ text_to_html(e) }}</li>{% endfor %}</ul>
-            {% endif %}
-            {% if result.analysis.runtime_errors %}
-                <p><strong>Lỗi thời gian chạy tiềm ẩn:</strong></p>
-                <ul>{% for e in result.analysis.runtime_errors %}<li>{{ text_to_html(e) }}</li>{% endfor %}</ul>
+            <!-- 1. Phân tích mã nguồn (Tổng quan) -->
+            <h2 class="section-title">1. Phân tích mã nguồn (Tổng quan)</h2>
+            {% if result.overview %}
+                <p><strong>Tóm tắt chức năng:</strong> {{ text_to_html(result.overview.summary) }}</p>
+                <p><strong>Mức độ đáp ứng yêu cầu:</strong>
+                    {% if result.overview.meets_requirements == true %}✅ Đầy đủ
+                    {% elif result.overview.meets_requirements == 'partial' %}⚠️ Một phần
+                    {% else %}❌ Không đáp ứng
+                    {% endif %}
+                </p>
+                <p><strong>Giải thích:</strong> {{ text_to_html(result.overview.explanation) }}</p>
+            {% else %}
+                <p>Không có thông tin tổng quan.</p>
             {% endif %}
 
-            <!-- 2. Gợi ý sửa lỗi -->
-            <h2 class="section-title">2. Gợi ý sửa lỗi</h2>
-            {% if result.suggestions %}
-                {% for s in result.suggestions %}
-                    <p><strong>Dòng {{ s.line }}:</strong> {{ text_to_html(s.error) }}</p>
-                    <p><strong>Đề xuất:</strong> {{ text_to_html(s.fix) }}</p>
-                    {% if s.fixed_code %}
+            <!-- 2. Phân tích độ phức tạp và hiệu suất -->
+            <h2 class="section-title">2. Phân tích độ phức tạp và hiệu suất</h2>
+            {% if result.complexity_analysis %}
+                <p><strong>Độ phức tạp thời gian (Big O):</strong> {{ text_to_html(result.complexity_analysis.time_complexity) }}</p>
+                <p><strong>Độ phức tạp không gian (Big O):</strong> {{ text_to_html(result.complexity_analysis.space_complexity) }}</p>
+                <p><strong>Giải thích chi tiết:</strong> {{ text_to_html(result.complexity_analysis.explanation) }}</p>
+            {% else %}
+                <p>Không có thông tin phân tích độ phức tạp.</p>
+            {% endif %}
+
+            <!-- 3. Các lỗi phát hiện được -->
+            <h2 class="section-title">3. Các lỗi phát hiện được</h2>
+            {% if result.errors %}
+                {% if result.errors.syntax_errors %}
+                    <h4>Lỗi cú pháp:</h4>
+                    <ul>
+                        {% for e in result.errors.syntax_errors %}
+                            <li><strong>Dòng {{ e.line }}:</strong> {{ text_to_html(e.description) }} (Mức độ: {{ text_to_html(e.severity) }}) - Tác động: {{ text_to_html(e.impact) }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+                {% if result.errors.logical_errors %}
+                    <h4>Lỗi logic:</h4>
+                    <ul>
+                        {% for e in result.errors.logical_errors %}
+                            <li><strong>Dòng {{ e.line }}:</strong> {{ text_to_html(e.description) }} (Mức độ: {{ text_to_html(e.severity) }}) - Tác động: {{ text_to_html(e.impact) }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+                {% if result.errors.potential_issues %}
+                    <h4>Lỗi tiềm ẩn / Vấn đề có thể phát sinh:</h4>
+                    <ul>
+                        {% for e in result.errors.potential_issues %}
+                            <li><strong>Dòng {{ e.line }}:</strong> {{ text_to_html(e.description) }} (Mức độ: {{ text_to_html(e.severity) }}) - Kịch bản: {{ text_to_html(e.scenario) }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+                {% if not result.errors.syntax_errors and not result.errors.logical_errors and not result.errors.potential_issues %}
+                    <p>✅ Không tìm thấy lỗi nào.</p>
+                {% endif %}
+            {% else %}
+                <p>Không có thông tin về lỗi.</p>
+            {% endif %}
+
+            <!-- 4. Gợi ý sửa lỗi chi tiết -->
+            <h2 class="section-title">4. Gợi ý sửa lỗi chi tiết</h2>
+            {% if result.fix_suggestions and result.fix_suggestions|length > 0 %}
+                {% for s in result.fix_suggestions %}
+                    <div class="suggestion-item">
+                        <p><strong>Lỗi tại dòng {{ s.line }} (Loại: {{ text_to_html(s.error_type) }}, Ưu tiên: {{ text_to_html(s.priority) }})</strong></p>
+                        <p><strong>Mã gốc:</strong></p>
+                        <pre class="bg-light p-2"><code>{{ text_to_html(s.original_code) }}</code></pre>
+                        <p><strong>Giải thích lỗi & Đề xuất sửa:</strong> {{ text_to_html(s.explanation) }}</p>
+                        <p><strong>Mã đã sửa:</strong></p>
                         <pre class="bg-light p-2"><code>{{ text_to_html(s.fixed_code) }}</code></pre>
-                    {% endif %}
+                    </div>
                 {% endfor %}
             {% else %}
                 <p>Không có gợi ý sửa lỗi.</p>
             {% endif %}
 
-            <!-- 3. Mô phỏng thực thi từng bước -->
-            <h2 class="section-title">3. Mô phỏng thực thi từng bước</h2>
+            <!-- 5. Mô phỏng thực thi từng bước -->
+            <h2 class="section-title">5. Mô phỏng thực thi từng bước</h2>
             {% if result.simulation %}
-                {% if result.simulation.error_case %}
+                {% if result.simulation.error_case and result.simulation.error_case.input != "Không tìm thấy trường hợp lỗi rõ ràng" %}
                     <div class="error-case mb-4">
-                        <h4>Trường hợp lỗi:</h4>
+                        <h4>Trường hợp gây lỗi (từ mã gốc):</h4>
                         <p><strong>Đầu vào:</strong> {{ text_to_html(result.simulation.error_case.input) }}</p>
                         <div class="steps">
                             {% for step in result.simulation.error_case.steps %}
                                 <div class="step {% if step.is_error_step %}error-step{% endif %}">
-                                    <p><strong>Bước {{ step.step }}:</strong></p>
+                                    <p><strong>Bước {{ step.step }}:</strong> Dòng {{ step.line }}</p>
                                     <p><code>{{ text_to_html(step.code_line) }}</code></p>
                                     <p>{{ text_to_html(step.explanation) }}</p>
                                     {% if step.variables %}
@@ -95,24 +133,28 @@
                                     {% endif %}
                                     {% if step.is_error_step %}
                                         <div class="error-explanation">
-                                            <p><strong>⚠️ LỖI TẠI BƯỚC NÀY:</strong></p>
-                                            <p>{{ text_to_html(step.error_explanation) }}</p>
+                                            <p><strong>⚠️ LỖI TẠI BƯỚC NÀY:</strong> {{ text_to_html(step.error_explanation) }}</p>
                                         </div>
                                     {% endif %}
                                 </div>
                             {% endfor %}
                         </div>
-                        <p><strong>Kết quả sai:</strong> {{ text_to_html(result.simulation.error_case.result) }}</p>
+                        {% if result.simulation.error_case.result %}
+                        <p><strong>Kết quả (sai/lỗi):</strong> {{ text_to_html(result.simulation.error_case.result) }}</p>
+                        {% endif %}
                     </div>
+                {% elif result.simulation.error_case %}
+                     <p>Mô phỏng lỗi: {{ text_to_html(result.simulation.error_case.input) }}</p>
                 {% endif %}
-                {% if result.simulation.corrected_case %}
-                    <div class="corrected-case">
-                        <h4>Trường hợp đã sửa:</h4>
-                        <p><strong>Đầu vào:</strong> {{ text_to_html(result.simulation.corrected_case.input) }}</p>
+
+                {% if result.simulation.success_case and result.simulation.success_case.input != "Không tìm thấy trường hợp chạy thành công" %}
+                    <div class="corrected-case success-case"> <!-- Added success-case class for styling -->
+                        <h4>Trường hợp thực thi thành công (từ mã gốc):</h4>
+                        <p><strong>Đầu vào:</strong> {{ text_to_html(result.simulation.success_case.input) }}</p>
                         <div class="steps">
-                            {% for step in result.simulation.corrected_case.steps %}
+                            {% for step in result.simulation.success_case.steps %}
                                 <div class="step">
-                                    <p><strong>Bước {{ step.step }}:</strong></p>
+                                    <p><strong>Bước {{ step.step }}:</strong> Dòng {{ step.line }}</p>
                                     <p><code>{{ text_to_html(step.code_line) }}</code></p>
                                     <p>{{ text_to_html(step.explanation) }}</p>
                                     {% if step.variables %}
@@ -122,16 +164,59 @@
                                 </div>
                             {% endfor %}
                         </div>
-                        <p><strong>Kết quả đúng:</strong> {{ text_to_html(result.simulation.corrected_case.result) }}</p>
+                         {% if result.simulation.success_case.result %}
+                        <p><strong>Kết quả (đúng):</strong> {{ text_to_html(result.simulation.success_case.result) }}</p>
+                        {% endif %}
                     </div>
+                {% elif result.simulation.success_case %}
+                    <p>Mô phỏng thành công: {{ text_to_html(result.simulation.success_case.input) }}</p>
                 {% endif %}
             {% else %}
                 <p>Không có thông tin mô phỏng thực thi.</p>
             {% endif %}
 
-            <!-- 4. Đánh giá tổng quát -->
-            <h2 class="section-title">4. Đánh giá tổng quát</h2>
-            <p>{{ text_to_html(result.evaluation) }}</p>
+            <!-- 6. Đề xuất cải tiến nâng cao -->
+            <h2 class="section-title">6. Đề xuất cải tiến nâng cao</h2>
+            {% if result.advanced_improvements and result.advanced_improvements|length > 0 %}
+                {% for item in result.advanced_improvements %}
+                    <div class="improvement-item">
+                        <h4>Cải tiến về {{ text_to_html(item.type) }}:</h4>
+                        <p><strong>Mô tả:</strong> {{ text_to_html(item.description) }}</p>
+                        <p><strong>Lợi ích:</strong> {{ text_to_html(item.benefit) }}</p>
+                        {% if item.code_example %}
+                            <p><strong>Ví dụ mã:</strong></p>
+                            <pre class="bg-light p-2"><code>{{ text_to_html(item.code_example) }}</code></pre>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            {% else %}
+                <p>Không có đề xuất cải tiến nâng cao.</p>
+            {% endif %}
+
+            <!-- 7. Đánh giá tổng quát và hướng dẫn học tập -->
+            <h2 class="section-title">7. Đánh giá tổng quát và hướng dẫn học tập</h2>
+            {% if result.learning_guidance %}
+                <p><strong>Đánh giá tổng thể:</strong> {{ text_to_html(result.learning_guidance.evaluation) }}</p>
+                {% if result.learning_guidance.concepts_to_learn and result.learning_guidance.concepts_to_learn|length > 0 %}
+                    <h4>Khái niệm nên tìm hiểu thêm:</h4>
+                    <ul>
+                        {% for concept in result.learning_guidance.concepts_to_learn %}
+                            <li>{{ text_to_html(concept) }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+                {% if result.learning_guidance.resources and result.learning_guidance.resources|length > 0 %}
+                    <h4>Tài nguyên học tập gợi ý:</h4>
+                    {% for resource in result.learning_guidance.resources %}
+                        <div class="resource-item">
+                            <p><strong>Chủ đề:</strong> {{ text_to_html(resource.topic) }} (Mức độ: {{ text_to_html(resource.difficulty) }})</p>
+                            <p><em>Lý do liên quan:</em> {{ text_to_html(resource.why_relevant) }}</p>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% else %}
+                <p>Không có đánh giá tổng quát hoặc hướng dẫn học tập.</p>
+            {% endif %}
         {% endif %}
 
         <div class="mt-4 text-center">
