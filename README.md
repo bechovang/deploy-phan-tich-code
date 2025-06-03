@@ -31,12 +31,12 @@ gcloud services enable \
 ## 3. Deploy với Buildpacks
 
 ```bash
-gcloud run deploy smart-assistant \
-  --project=ai-phan-tich-code \
-  --region=us-central1 \
-  --source=. \
-  --allow-unauthenticated \
-  --set-env-vars=GEMINI_API_KEY=<YOUR_GEMINI_API_KEY>
+gcloud run deploy smart-assistant ^
+  --project=ai-phan-tich-code ^
+  --region=us-central1 ^
+  --source=. ^
+  --allow-unauthenticated ^
+  --set-env-vars=GEMINI_API_KEY=<..............>
 ```
 
 * `--source=.`: dùng Buildpacks tự động build container từ mã Python/Flask.
