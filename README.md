@@ -1,4 +1,4 @@
-````markdown
+
 # Trợ lý Lập trình Thông minh
 
 Ứng dụng Flask “Trợ lý Lập trình” giúp phân tích và gợi ý sửa lỗi mã nguồn tự động, chạy trên Google Cloud Run.
@@ -152,5 +152,4 @@ Vẫn giữ độ chi tiết đủ dùng, nhưng tiết kiệm \~90% chi phí tr
 * Luôn quản lý `GEMINI_API_KEY` qua `--set-env-vars`.
 * Theo dõi actual token usage (nếu có) để điều chỉnh cấu hình cho sát thực tế.
 
-```
 ```
